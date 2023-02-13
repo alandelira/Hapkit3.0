@@ -19,6 +19,8 @@
 
 #include <math.h>
 #include <limits.h>
+#include <MagAlpha.h>
+#include <EEPROM.h>
 
 // Define standard constants and functions (some versions of libc do not include these)
 #ifndef M_PI
@@ -81,6 +83,53 @@ public:
   {
     return y1 = x * a0 + y1 * b1;
   }
+};
+
+//interface for magalpha ma730 sensor
+class HapkitSensorMagAlpha
+{
+  private:
+    uint8_t addr_lsb = 0;
+    uint8_t addr_msb = 1;
+    uint8_t spi_cs_pin;
+
+    uint16_t zeroRawPos;
+    uint16_t rawPos;
+    uint16_t lastRawPos;
+    uint16_t lastLastRawPos;
+
+    uint32_t spi_sclk_freq;
+
+    int32_t rawDiff;
+    int32_t lastRawDiff;
+    int32_t rawOffset;
+    int32_t lastRawOffset;
+
+    MagAlpha magAlpha;
+
+  public:
+    HapkitSensorMagAlpha(uint32_t SPI_SCLK_FREQ = 5000000, uint8_t SPI_CS_PIN = 7)
+    {
+      spi_sclk_freq = SPI_SCLK_FREQ;
+      spi_cs_pin = SPI_CS_PIN;
+      initiate_sensor();
+    }
+    uint16_t read_eeprom_angle();
+    void write_eeprom_angle(uint16_t angle);
+    void calibrate_sensor();
+    void initiate_sensor();
+  // Reset the variables to their default values
+    void readSensor();
+    // Get calibrated position of the motor shaft (in ADC units)
+    inline int32_t getPosition()
+    {
+      return rawPos - zeroRawPos;
+    }
+    // Set zero's position
+    inline void setZero()
+    {
+        zeroRawPos = read_eeprom_angle();
+    };
 };
 
 // Interface to NXP KMA210 sensor
@@ -214,6 +263,13 @@ static const hapkit_kinematics_t HAPKIT_BLUE = {
   .sector_radius = 0.075,
   .sector_span = (90.0 / 180.0 * M_PI),
 };
+static const hapkit_kinematics_t HAPKIT_MEDITRINA1 = {
+  .pulley_radius = 0.00487,
+  .handle_radius = 0.07,
+  .sector_radius = 0.0788,
+  .sector_span = (90.0 / 180.0 * M_PI),
+}
+
 
 // Holds haptic effect data
 typedef struct hapkit_effect
@@ -241,7 +297,7 @@ class Hapkit
     // Motor interface object
     HapkitMotor motor;
     // Sensor interface object
-    HapkitSensor sensor;
+    HapkitSensorMagAlpha sensor;
     // Low-pass position filter
     LowPassFilter pos_filter;
     // Low-pass velocity filter
@@ -260,7 +316,7 @@ class Hapkit
     float rh;               // handle radius [m]
     float rs;               // sector radius [m]
     float sec_span;         // sector rotation range [rad]
-    float sec_K;            // transmission coefficient from sensor val to radians
+    float sec_K = 2.0 * 3.1416 / 65536.0;            // transmission coefficient from sensor val to radians
     float alpha_h;          // rotation angle of the handle [rad]
     float xh;               // position of the handle [m]
 
@@ -292,7 +348,7 @@ class Hapkit
 
   public:
 #if defined(__AVR__)
-    Hapkit(hapkit_kinematics_t kin, uint8_t motornum, uint8_t sensor_pin);
+    Hapkit(hapkit_kinematics_t kin, uint8_t motornum, uint8_t sensor_pin, uint32_t spi_sclk_frequency);
 #elif defined(__MBED__)
     Ticker force_tck;
     Hapkit(hapkit_kinematics_t kin, uint8_t motornum, PinName sensor_pin);
@@ -308,6 +364,7 @@ class Hapkit
     }
     // Start automatic calibration procedure
     void calibrate();
+    void manualCalibrate(bool calibrate_sensor);
     // Reset variables
     void reset();
     // Set the desired force at the tip of the Hapkit handle, [N]
@@ -334,7 +391,7 @@ class Hapkit
     }
 
     // Get sensor object (for debug purposes)
-    inline HapkitSensor* getSensor()
+    inline HapkitSensorMagAlpha* getSensor()
     {
         return &sensor;
     }

@@ -21,6 +21,45 @@ static float g_UpdateRate = 2000.0f;
 // #define LOOP_RATE (2000.0) // 0.5 kHz
 #define LOOP_PERIOD (1.0 / g_UpdateRate) // [sec]
 
+void HapkitSensorMagAlpha::readSensor()
+{
+  rawPos = magAlpha.readAngleRaw16();
+
+  // Calculate differences between subsequent MR sensor readings
+  rawDiff = rawPos - lastRawPos;          //difference btwn current raw position and last raw position
+  lastRawDiff = rawPos - lastLastRawPos;  //difference btwn current raw position and last last raw position
+  rawOffset = abs(rawDiff);
+  lastRawOffset = abs(lastRawDiff);
+
+  // Update position record-keeping vairables
+  lastLastRawPos = lastRawPos;
+  lastRawPos = rawPos;
+}
+void HapkitSensorMagAlpha::initiate_sensor()
+{
+  magAlpha.begin(spi_sclk_frequency, MA_SPI_MODE_3, spi_cs_pin);
+}
+void HapkitSensorMagAlpha::calibrate_sensor()
+{
+  readSensor();
+  write_eeprom_angle(rawPos);
+}
+u_int16_t HapkitSensorMagAlpha::read_eeprom_angle()
+{
+  uint8_t lsb = EEPROM.read(addr_lsb);
+  uint8_t msb = EEPROM.read(addr_msb);
+  return (msb << 8) | lsb;
+}
+void HapkitSensorMagAlpha::write_eeprom_angle(uint16 angle)
+{
+  uint8_t lsb = angle & 0x00ff;
+  uint8_t msb = (angle & 0xff00) >> 8;
+  EEPROM.update(addr_lsb, lsb);
+  EEPROM.update(addr_msb, msb); 
+}
+
+
+
 #if defined(__AVR__)
 HapkitSensor::HapkitSensor(uint8_t pin, int16_t flip_threshold)
 #elif defined(__MBED__)
@@ -278,7 +317,15 @@ void Hapkit::configure(float duty_threshold)
 {
     duty_th = duty_threshold;
 }
-
+void Hapkit::manualCalibrate(bool calibrate_sensor)
+{
+  if(calibrate_sensor)
+    sensor.calibrate_sensor();
+  minPos = 5500;
+  maxPos = 5500;
+  calibrated = true;
+  calibration_counter = 0;
+}
 //*************************************************************
 //*** Automatic Calibration ***********************************
 //*************************************************************

@@ -71,14 +71,14 @@ void hapticLoop()
 
     // Handle the button (only available on Hapkit Yellow)
     // Read the button pin
-    button = digitalRead(buttonPin);
+    //button = digitalRead(buttonPin);
 
     // Button down?
-    if (button - lastButton > 0) // rising edge
-    {
+    //if (button - lastButton > 0) // rising edge
+    //{
       // Loop over control modes
-      mode++;
-    }
+      //mode++;
+    //}
 
     // Remember last state
     lastButton = button;
@@ -95,15 +95,15 @@ void setup() {
 
   // Set the button to Pull-Up mode,
   // i.e. when the button unpressed the value is 1
-  pinMode(buttonPin, OUTPUT);
-  digitalWrite(buttonPin, LOW);
-  pinMode(buttonPin, INPUT_PULLUP);
+  //pinMode(buttonPin, OUTPUT);
+  //digitalWrite(buttonPin, LOW);
+  //pinMode(buttonPin, INPUT_PULLUP);
 
   // Instantiate the Hapkit object
   // Use pre-defined kinematic parameters.
   // Motor termina: 1
   // Sensor analog pin: A2
-  hapkit = new Hapkit(HAPKIT_YELLOW, 1, A2);
+  hapkit = new Hapkit(HAPKIT_MEDITRINA1, 1, 7, 10000000);
   // Update at 1 kHz rate
   hapkit->setUpdateRate(1000.0);
 
@@ -114,7 +114,7 @@ void setup() {
 
   // Run automatic calibration
   // The handle will bounce to the mechanical limits
-  hapkit->calibrate();
+  hapkit->manualCalibrate(false);
 
   // Set low-pass velocity and acceleration filters
   hapkit->configureFilters(10.0, 5.0);
