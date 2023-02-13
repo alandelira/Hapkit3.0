@@ -143,103 +143,40 @@ void HapkitSensor::readSensor()
 
 HapkitMotor::HapkitMotor(uint8_t motornum)
 {
-  #if defined(__AVR__)
     motor_id = motornum;
-    // Adafruit Motor Shield V1
-    // switch(motor_id)
-    // {
-    //   case 1:
-    //   case 2:
-    //     motor = new AF_DCMotor(motor_id, MOTOR12_64KHZ);
-    //     break;
-    //   case 3:
-    //   case 4:
-    //     motor = new AF_DCMotor(motor_id, MOTOR34_64KHZ);
-    //     break;
-    // }
-  // Adafruit Motor Shield V2
-  AFMS = new Adafruit_MotorShield();
-  motor = AFMS->getMotor(motor_id);
+    //remap pins because spi interface uses pins 10-12
+    unsigned char dir_a=4, brk_a=9, pwm_a=3, cs_a=A0, dir_b=5, brk_b=8, pwm_b=6, cs_b=A1;
+    AMS = new ArduinoMotorShieldR3(dir_a, brk_a, pwm_a, cs_a, dir_b, brk_b, pwm_b, cs_b);
+    AMS->init();
 
-  AFMS->begin();
-
-  TWBR = ((F_CPU /400000l) - 16) / 2; // Change the i2c clock to 400KHz
-
-  // Make sure the motor is not running
-  motor->setSpeed(0);
-  motor->run(FORWARD);
-
-  #elif defined(__MBED__)
-
-    motor_id = motornum - 1;
-
-    motor = new L6206(D2, A4, D5, D4, A0, A1);
-    if (motor->init(NULL) != COMPONENT_OK) {
-        exit(EXIT_FAILURE);
-    }
-
-    switch(motor_id)
-    {
-      case 0:
-      case 1:
-        /* Set PWM Frequency of bridge inputs to 20 kHz */
-        motor->set_bridge_input_pwm_freq(motor_id, 60000);
-        motor->set_speed(motor_id, 0);
-        /* start motor */
-        motor->run(motor_id, (BDCMotor::direction_t)FORWARD);
-        break;
-    }
-  #endif
+    // Make sure the motor is not running
+    setSpeed(0);
 }
 
-#if defined(__AVR__)
-void HapkitMotor::run(uint8_t direction)
-#elif defined(__MBED__)
-void HapkitMotor::run(motorDir_t direction)
-#endif
+void HapkitMotor::setSpeed(int16_t speed)
 {
-  if (motor)
+  //rev3 motor shield library takes -400 to 400 speed value
+  //converts that into 8bit pwm and sets appropriate dir pin
+  if(motor_id==1)
   {
-  #if defined(__AVR__)
-    motor->run(direction);
-  #elif defined(__MBED__)
-    motor->run(motor_id, (BDCMotor::direction_t)direction);
-  #endif
+    AMS->setM1Speed(speed);
   }
-}
-
-void HapkitMotor::setSpeed(float duty)
-{
-  uint8_t duty_u8;
-
-  // Clamp the duty cycle
-  if (duty > 1.0f)
+  else if(motor_id==2)
   {
-    duty = 1.0f;
+    AMS->setM2Speed(speed);
   }
-
-  if (duty < 0.0f)
-  {
-    duty = 0.0f;
-  }
-
-  #if defined(__AVR__)
-    duty_u8 = duty * 255;
-    motor->setSpeed(duty_u8);
-  #elif defined(__MBED__)
-    duty_u8 = duty * 255;
-    motor->set_speed(motor_id, duty_u8);
-//    printf("Motor speed: %d\r\n", duty_u8);
-  #endif
 }
 
 void HapkitMotor::stop()
 {
-  #if defined(__AVR__)
-    motor->run(RELEASE);
-  #elif defined(__MBED__)
-    motor->hard_hiz(motor_id);
-  #endif
+  if(motor_id==1)
+  {
+    AMS->setM1Brake();
+  }
+  else if(motor_id==2)
+  {
+    AMS->setM2Brake();
+  }
 }
 
 //#if defined(__AVR__)
@@ -339,7 +276,7 @@ void Hapkit::calibrate()
   this->stopLoop(); // Make sure the haptic loop is not running (only on STM32)
 
   // Slowly move to one end
-  motor.setSpeed(0.3);
+  motor.setSpeed(120);
 
   while(!calibrated)
   {
@@ -363,59 +300,58 @@ void Hapkit::calibrate()
     calibration_counter++;
 
     // Move to one mechanical limit
-    if (calibration_counter < 700)
-    {
-      motor.run(BACKWARD);
-    }
-    // Move to another mechanical limit
-    else if (calibration_counter < 1400)
-    {
-      motor.run(FORWARD);
-    }
-    // Move to calculated zero position
-    else if (calibration_counter < 2100)
-    {
-        // A kind of PID controller
-        e = (cur_pos - zeroPos) / (float)(abs(minPos) + abs(maxPos));
-        e_d = e_last - e;
-        e_i += e;
-        e_last = e;
-        float s = (e * 2.5f + e_i * 0.03f + e_d * 0.20f);
+//     if (calibration_counter < 700)
+//     {
+//       motor.run(BACKWARD);
+//     }
+//     // Move to another mechanical limit
+//     else if (calibration_counter < 1400)
+//     {
+//       motor.run(FORWARD);
+//     }
+//     // Move to calculated zero position
+//     else if (calibration_counter < 2100)
+//     {
+//         // A kind of PID controller
+//         e = (cur_pos - zeroPos) / (float)(abs(minPos) + abs(maxPos));
+//         e_d = e_last - e;
+//         e_i += e;
+//         e_last = e;
+//         float s = (e * 2.5f + e_i * 0.03f + e_d * 0.20f);
 
-        if (s > 0.0) motor.run(BACKWARD);
-        else motor.run(FORWARD);
+//         if (s > 0.0) motor.run(BACKWARD);
+//         else motor.run(FORWARD);
 
-//        printf("Current speed: %1.5f\r\n", fabs(s));
-//        printf("Position error: %1.5f\r\n", e);
+// //        printf("Current speed: %1.5f\r\n", fabs(s));
+// //        printf("Position error: %1.5f\r\n", e);
 
-        motor.setSpeed(fabs(s));
-    }
-    else
-    {
-        // Ouput calibration results
-        printf("Calibrated\r\n");
+//         //motor.setSpeed(fabs(s));
+//     }
+//     else
+//     {
+//         // Ouput calibration results
+//         printf("Calibrated\r\n");
 
-        printf("Min: %d\r\n", minPos);
-        printf("Max: %d\r\n", maxPos);
-        printf("Zero: %d\r\n", zeroPos);
+//         printf("Min: %d\r\n", minPos);
+//         printf("Max: %d\r\n", maxPos);
+//         printf("Zero: %d\r\n", zeroPos);
 
-        printf("Final position error: %1.5f\r\n", e);
+//         printf("Final position error: %1.5f\r\n", e);
 
-        // Set the zero
-        //sensor.setZero(zeroPos);
-        sensor.setZero();
-        // Calculate the scaling factor for the sector,
-        // (transforms sensor readings from ADC units to radians)
-        sec_K = sec_span / (fabs((float)minPos) + fabs((float)maxPos));
+//         // Set the zero
+//         //sensor.setZero(zeroPos);
+//         sensor.setZero();
+//         // Calculate the scaling factor for the sector,
+//         // (transforms sensor readings from ADC units to radians)
+//         sec_K = sec_span / (fabs((float)minPos) + fabs((float)maxPos));
 
-        calibrated = true;
-        calibration_counter = 0;
-//        motor.setSpeed(0.0);
-        motor.stop();
+//         calibrated = true;
+//         calibration_counter = 0;
+//         motor.stop();
 
-        this->startLoop();
-        return;
-    }
+//         this->startLoop();
+//         return;
+//     }
   }
 }
 
@@ -486,18 +422,19 @@ void Hapkit::setForce(float force)
     duty = 0.0;
     motor.stop();
   }
-  else
-  {
-    // Determine correct direction for motor torque
-    if(force < 0) {
-      motor.run(BACKWARD);
-    } else {
-      motor.run(FORWARD);
-    }
-  }
+  // else
+  // {
+  //   // Determine correct direction for motor torque
+  //   if(force < 0) {
+  //     motor.run(BACKWARD);
+  //   } else {
+  //     motor.run(FORWARD);
+  //   }
+  // }
+  float speed = force > 0 ? duty*400.0 : duty*400.0*-1.0;
 
   // Set the motor speed/duty
-  motor.setSpeed(duty);
+  motor.setSpeed((int16_t)speed);
 }
 
 float Hapkit::getUpdateRate()

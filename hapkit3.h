@@ -40,13 +40,13 @@
   // Build for Arduino with Adafruit Motor Shield v1.0
   // #include <AFMotor.h>
   // Build for Arduino with Adafruit Motor Shield v2.0
-  #include <Adafruit_MotorShield.h>
 // Build for Mbed on STM32
 #elif defined(__MBED__)
   // Build for Mbed with X Nucleo IHM04A1
   #include <L6206.h>
   #include "analogin_dma.h"
 #endif
+#include <ArduinoMotorShieldR3.h>
 
 // One-pole recursive low-pass filter
 class LowPassFilter
@@ -213,12 +213,8 @@ class HapkitMotor
     // Motor ID (screw terminal output number)
     uint8_t motor_id;
 #if defined(__AVR__)
-    // Adafruit Motor Shield V1
-    // AF_DCMotor* motor;
+    ArduinoMotorShieldR3* AMS;
 
-    // Adafruit Motor Shield V2
-    Adafruit_MotorShield* AFMS;
-    Adafruit_DCMotor *motor;
 #elif defined(__MBED__)
     // X Nucleo IHM04A1
     L6206* motor;
@@ -227,14 +223,8 @@ class HapkitMotor
   public:
     HapkitMotor(uint8_t motornum);
 
-    // Start the motor in the given direction
-#if defined(__AVR__)
-    void run(uint8_t direction);
-#elif defined(__MBED__)
-    void run(motorDir_t direction);
-#endif
-    // Set normalized motor speed (0.0; 1.0]
-    void setSpeed(float duty);
+    // Set normalized motor speed (-400: 400]
+    void setSpeed(int16_t duty);
     // Stop the motor
     void stop();
 };
@@ -263,7 +253,7 @@ static const hapkit_kinematics_t HAPKIT_BLUE = {
   .sector_radius = 0.075,
   .sector_span = (90.0 / 180.0 * M_PI),
 };
-static const hapkit_kinematics_t HAPKIT_MEDITRINA1 = {
+static const hapkit_kinematics_t HAPKIT_MAGALPHA1 = {
   .pulley_radius = 0.00487,
   .handle_radius = 0.07,
   .sector_radius = 0.0788,

@@ -103,7 +103,7 @@ void setup() {
   // Use pre-defined kinematic parameters.
   // Motor termina: 1
   // Sensor analog pin: A2
-  hapkit = new Hapkit(HAPKIT_MEDITRINA1, 1, 7, 10000000);
+  hapkit = new Hapkit(HAPKIT_MAGALPHA1, 1, 7, 10000000);
   // Update at 1 kHz rate
   hapkit->setUpdateRate(1000.0);
 
