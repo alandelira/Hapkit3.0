@@ -37,20 +37,20 @@ void HapkitSensorMagAlpha::readSensor()
 }
 void HapkitSensorMagAlpha::initiate_sensor()
 {
-  magAlpha.begin(spi_sclk_frequency, MA_SPI_MODE_3, spi_cs_pin);
+  magAlpha.begin(spi_sclk_freq, MA_SPI_MODE_3, spi_cs_pin);
 }
 void HapkitSensorMagAlpha::calibrate_sensor()
 {
   readSensor();
   write_eeprom_angle(rawPos);
 }
-u_int16_t HapkitSensorMagAlpha::read_eeprom_angle()
+uint16_t HapkitSensorMagAlpha::read_eeprom_angle()
 {
   uint8_t lsb = EEPROM.read(addr_lsb);
   uint8_t msb = EEPROM.read(addr_msb);
   return (msb << 8) | lsb;
 }
-void HapkitSensorMagAlpha::write_eeprom_angle(uint16 angle)
+void HapkitSensorMagAlpha::write_eeprom_angle(uint16_t angle)
 {
   uint8_t lsb = angle & 0x00ff;
   uint8_t msb = (angle & 0xff00) >> 8;
@@ -242,13 +242,13 @@ void HapkitMotor::stop()
   #endif
 }
 
-#if defined(__AVR__)
-Hapkit::Hapkit(const hapkit_kinematics_t kin, uint8_t motornum, uint8_t sensor_pin)
-#elif defined(__MBED__)
+//#if defined(__AVR__)
+Hapkit::Hapkit(hapkit_kinematics_t kin, uint8_t motornum, uint8_t sensor_pin, uint32_t spi_sclk_frequency)
+#if defined(__MBED__)
 Hapkit::Hapkit(const hapkit_kinematics_t kin, uint8_t motornum, PinName sensor_pin)
 #endif
 : motornum(motornum), sensor_pin(sensor_pin),
-  motor(motornum), sensor(sensor_pin), effects(NULL), effects_len(0),
+  motor(motornum), sensor(sensor_pin, spi_sclk_frequency), effects(NULL), effects_len(0),
   duty_th(0.10f),
   // pos_filter(500.0, g_UpdateRate),
   vel_filter(5.0, g_UpdateRate),
@@ -402,8 +402,8 @@ void Hapkit::calibrate()
         printf("Final position error: %1.5f\r\n", e);
 
         // Set the zero
-        sensor.setZero(zeroPos);
-
+        //sensor.setZero(zeroPos);
+        sensor.setZero();
         // Calculate the scaling factor for the sector,
         // (transforms sensor readings from ADC units to radians)
         sec_K = sec_span / (fabs((float)minPos) + fabs((float)maxPos));

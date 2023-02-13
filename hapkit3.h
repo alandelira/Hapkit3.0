@@ -108,10 +108,10 @@ class HapkitSensorMagAlpha
     MagAlpha magAlpha;
 
   public:
-    HapkitSensorMagAlpha(uint32_t SPI_SCLK_FREQ = 5000000, uint8_t SPI_CS_PIN = 7)
+    HapkitSensorMagAlpha(uint8_t pin = 7, uint32_t SPI_SCLK_FREQ = 5000000)
     {
       spi_sclk_freq = SPI_SCLK_FREQ;
-      spi_cs_pin = SPI_CS_PIN;
+      spi_cs_pin = pin;
       initiate_sensor();
     }
     uint16_t read_eeprom_angle();
@@ -268,7 +268,7 @@ static const hapkit_kinematics_t HAPKIT_MEDITRINA1 = {
   .handle_radius = 0.07,
   .sector_radius = 0.0788,
   .sector_span = (90.0 / 180.0 * M_PI),
-}
+};
 
 
 // Holds haptic effect data
@@ -347,9 +347,9 @@ class Hapkit
     void stopLoop();
 
   public:
-#if defined(__AVR__)
+//#if defined(__AVR__)
     Hapkit(hapkit_kinematics_t kin, uint8_t motornum, uint8_t sensor_pin, uint32_t spi_sclk_frequency);
-#elif defined(__MBED__)
+#if defined(__MBED__)
     Ticker force_tck;
     Hapkit(hapkit_kinematics_t kin, uint8_t motornum, PinName sensor_pin);
 #endif

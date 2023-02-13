@@ -17,30 +17,30 @@ Hapkit* hapkit = NULL;
 TimerOne timer_tck;
 
 // Define the arrau of haptic effects -- click-in positions
-const hapkit_effect_t potential_well[] = {
+hapkit_effect_t potential_well[] = {
   {
     .position = -0.04,
     .width = 0.003,
     .k_spring = 700.0,
-    .k_dumper = 5.7,
+    .k_damper = 5.7,
   },
   {
     .position = -0.02,
     .width = 0.003,
     .k_spring = 700.0,
-    .k_dumper = 5.7,
+    .k_damper = 5.7,
   },
   {
     .position = 0.02,
     .width = 0.003,
     .k_spring = 700.0,
-    .k_dumper = 5.7,
+    .k_damper = 5.7,
   },
   {
     .position = 0.04,
     .width = 0.003,
     .k_spring = 700.0,
-    .k_dumper = 5.7,
+    .k_damper = 5.7,
   },
 };
 
