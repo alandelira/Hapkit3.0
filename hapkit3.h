@@ -93,8 +93,6 @@ class HapkitSensorMagAlpha
     uint8_t addr_msb = 1;
     uint8_t spi_cs_pin;
 
-    uint16_t zeroRawPos;
-    uint16_t rawPos;
     uint16_t lastRawPos;
     uint16_t lastLastRawPos;
 
@@ -108,7 +106,7 @@ class HapkitSensorMagAlpha
     MagAlpha magAlpha;
 
   public:
-    HapkitSensorMagAlpha(uint8_t pin = 7, uint32_t SPI_SCLK_FREQ = 5000000)
+    HapkitSensorMagAlpha(uint8_t pin = 7, uint32_t SPI_SCLK_FREQ = 1000000)
     {
       spi_sclk_freq = SPI_SCLK_FREQ;
       spi_cs_pin = pin;
@@ -120,10 +118,12 @@ class HapkitSensorMagAlpha
     void initiate_sensor();
   // Reset the variables to their default values
     void readSensor();
+    uint16_t zeroRawPos;
+    uint16_t rawPos;
     // Get calibrated position of the motor shaft (in ADC units)
     inline int32_t getPosition()
     {
-      return rawPos - zeroRawPos;
+      return (int32_t)rawPos - (int32_t)zeroRawPos;
     }
     // Set zero's position
     inline void setZero()
@@ -213,7 +213,7 @@ class HapkitMotor
     // Motor ID (screw terminal output number)
     uint8_t motor_id;
 #if defined(__AVR__)
-    ArduinoMotorShieldR3* AMS;
+    ArduinoMotorShieldR3 AMS;
 
 #elif defined(__MBED__)
     // X Nucleo IHM04A1
@@ -221,10 +221,12 @@ class HapkitMotor
 #endif
 
   public:
+    int16_t speed;
     HapkitMotor(uint8_t motornum);
 
     // Set normalized motor speed (-400: 400]
     void setSpeed(int16_t duty);
+    void initialize();
     // Stop the motor
     void stop();
 };
@@ -285,7 +287,7 @@ class Hapkit
     PinName sensor_pin;
 #endif
     // Motor interface object
-    HapkitMotor motor;
+    //HapkitMotor motor;
     // Sensor interface object
     HapkitSensorMagAlpha sensor;
     // Low-pass position filter
@@ -295,18 +297,19 @@ class Hapkit
     // Low-pass acceleration filter
     LowPassFilter acc_filter;
 
-    // Position tracking variables for automatic callibration
-    int minPos;
-    int maxPos;
     // Mechanical zero
     int zeroPos;
+
+    // Position tracking variables for automatic callibration
+    //int minPos;
+    //int maxPos;
 
     // Kinematics variables
     float rp;               // pulley radius [m]
     float rh;               // handle radius [m]
     float rs;               // sector radius [m]
     float sec_span;         // sector rotation range [rad]
-    float sec_K = 2.0 * 3.1416 / 65536.0;            // transmission coefficient from sensor val to radians
+    //float sec_K;            // transmission coefficient from sensor val to radians
     float alpha_h;          // rotation angle of the handle [rad]
     float xh;               // position of the handle [m]
 
@@ -337,7 +340,12 @@ class Hapkit
     void stopLoop();
 
   public:
+    HapkitMotor motor;
 //#if defined(__AVR__)
+    float sec_K;          // transmission coefficient from sensor val to radians
+        // Position tracking variables for automatic callibration
+    int minPos;
+    int maxPos;
     Hapkit(hapkit_kinematics_t kin, uint8_t motornum, uint8_t sensor_pin, uint32_t spi_sclk_frequency);
 #if defined(__MBED__)
     Ticker force_tck;

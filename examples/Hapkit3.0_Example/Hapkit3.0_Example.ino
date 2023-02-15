@@ -81,7 +81,7 @@ void hapticLoop()
     //}
 
     // Remember last state
-    lastButton = button;
+    //lastButton = button;
   }
 }
 
@@ -103,7 +103,7 @@ void setup() {
   // Use pre-defined kinematic parameters.
   // Motor termina: 1
   // Sensor analog pin: A2
-  hapkit = new Hapkit(HAPKIT_MAGALPHA1, 1, 7, 10000000);
+  hapkit = new Hapkit(HAPKIT_MAGALPHA1, 1, 7, 1000000);
   // Update at 1 kHz rate
   hapkit->setUpdateRate(1000.0);
 
@@ -157,4 +157,11 @@ void loop() {
           break;
       }
   }
+  //Serial.println(force);
+  //Serial.println(hapkit->getSensor()->getPosition());
+
+    //Serial.print("x: ");
+    //Serial.println(hapkit->getPosition());
+    //Serial.print("v: ");
+    //Serial.println(hapkit->getVelocity());
 }

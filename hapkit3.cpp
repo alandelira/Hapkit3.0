@@ -38,6 +38,7 @@ void HapkitSensorMagAlpha::readSensor()
 void HapkitSensorMagAlpha::initiate_sensor()
 {
   magAlpha.begin(spi_sclk_freq, MA_SPI_MODE_3, spi_cs_pin);
+  setZero();
 }
 void HapkitSensorMagAlpha::calibrate_sensor()
 {
@@ -146,36 +147,37 @@ HapkitMotor::HapkitMotor(uint8_t motornum)
     motor_id = motornum;
     //remap pins because spi interface uses pins 10-12
     unsigned char dir_a=4, brk_a=9, pwm_a=3, cs_a=A0, dir_b=5, brk_b=8, pwm_b=6, cs_b=A1;
-    AMS = new ArduinoMotorShieldR3(dir_a, brk_a, pwm_a, cs_a, dir_b, brk_b, pwm_b, cs_b);
-    AMS->init();
-
-    // Make sure the motor is not running
-    setSpeed(0);
+    AMS = ArduinoMotorShieldR3(dir_a, brk_a, pwm_a, cs_a, dir_b, brk_b, pwm_b, cs_b);
+}
+void HapkitMotor::initialize()
+{
+  AMS.init();
 }
 
-void HapkitMotor::setSpeed(int16_t speed)
+void HapkitMotor::setSpeed(int16_t speed_)
 {
   //rev3 motor shield library takes -400 to 400 speed value
-  //converts that into 8bit pwm and sets appropriate dir pin
-  if(motor_id==1)
-  {
-    AMS->setM1Speed(speed);
-  }
-  else if(motor_id==2)
-  {
-    AMS->setM2Speed(speed);
-  }
+  speed=speed_;
+  AMS.setM1Speed(speed);
+  // if(motor_id==1)
+  // {
+  //   AMS.setM1Speed(speed);
+  // }
+  // else if(motor_id==2)
+  // {
+  //   AMS.setM2Speed(speed);
+  // }
 }
 
 void HapkitMotor::stop()
 {
   if(motor_id==1)
   {
-    AMS->setM1Brake();
+    AMS.setM1Speed(0);
   }
   else if(motor_id==2)
   {
-    AMS->setM2Brake();
+    AMS.setM2Speed(0);
   }
 }
 
@@ -258,8 +260,9 @@ void Hapkit::manualCalibrate(bool calibrate_sensor)
 {
   if(calibrate_sensor)
     sensor.calibrate_sensor();
-  minPos = 5500;
-  maxPos = 5500;
+  minPos = 12000;
+  maxPos = 12000;
+  sec_K = 2.0 * 3.14 / 65536.0; 
   calibrated = true;
   calibration_counter = 0;
 }
@@ -408,7 +411,7 @@ void Hapkit::setForce(float force)
   //*************************************************************
 
   // Compute the duty cycle required to generate Tp (torque at the motor pulley)
-  duty = sqrt(fabs(Tp) / 0.0146); // the magic number here is the motor constant
+  duty = sqrt(fabs(Tp) / 0.03); // the magic number here is the motor constant
 
   // Make sure the duty cycle is between 0 and 100%
   if (duty > 1) {
